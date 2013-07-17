@@ -80,8 +80,8 @@ class Test(object):
             data_rus = rus.readlines()
         with codecs.open('eng_words.txt', 'r', 'utf-8') as eng:
             data_eng = eng.readlines()
-        data_rus = [line.replace('\n', '').replace('\r','').lower() for line in data_rus]
-        data_eng = [line.replace('\n', '').replace('\r','').lower() for line in data_eng]
+        data_rus = [line.replace('\n', '').replace('\r', '').lower() for line in data_rus]
+        data_eng = [line.replace('\n', '').replace('\r', '').lower() for line in data_eng]
         words_lines = zip(data_rus, data_eng)
         self.words_list = words_lines
         self.save_words_list()
@@ -92,7 +92,6 @@ class MyFrame(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(500, 500))
         font = wx.Font(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-
 
         panel = wx.Panel(self)
         panel.SetFont(font)
@@ -197,8 +196,8 @@ class Words(wx.Frame):
         hbox.Add(self.list, 1, wx.EXPAND)
 
         ID_NEW = 1
-        ID_RENAME = 2
-        ID_CLEAR = 3
+        # ID_RENAME = 2
+        # ID_CLEAR = 3
         ID_DELETE = 4
 
         btnPanel = wx.Panel(panel, -1)
@@ -209,7 +208,7 @@ class Words(wx.Frame):
         # clr = wx.Button(btnPanel, ID_CLEAR, 'Clear', size=(90, 30))
 
         self.Bind(wx.EVT_BUTTON, self.NewItem, id=ID_NEW)
-        self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
+        # self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=ID_DELETE)
         # self.Bind(wx.EVT_BUTTON, self.OnClear, id=ID_CLEAR)
 
@@ -234,19 +233,18 @@ class Words(wx.Frame):
             index = self.list.InsertStringItem(sys.maxint, words[0])
             self.list.SetStringItem(index, 1, words[1])
 
-    def OnRename(self, event):
-        sel = self.listbox.GetSelection()
-        text = self.listbox.GetString(sel)
-        renamed = wx.GetTextFromUser('Rename item', 'Rename dialog', text)
-        if renamed != '':
-            self.listbox.Delete(sel)
-            self.listbox.Insert(renamed, sel)
+    # def OnRename(self, event):
+    #     sel = self.listbox.GetSelection()
+    #     text = self.listbox.GetString(sel)
+    #     renamed = wx.GetTextFromUser('Rename item', 'Rename dialog', text)
+    #     if renamed != '':
+    #         self.listbox.Delete(sel)
+    #         self.listbox.Insert(renamed, sel)
 
     def OnDelete(self, event):
         sel = self.list.GetNextSelected(-1)
         if sel != -1:
             self.list.DeleteItem(sel)
-
 
 
 if __name__ == "__main__":
