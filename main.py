@@ -9,6 +9,14 @@ __author__ = 'Kulikov Pavel'
 
 
 class Test(object):
+    def __new__(cls):
+        """
+         Singleton part
+        """
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Test, cls).__new__(cls)
+        return cls.instance
+
     words_list_filename = 'words_list.txt'
     # modes = enumerate('rus', 'eng')
 
@@ -31,7 +39,6 @@ class Test(object):
         adding_line = [rus.lower(), eng.lower()]
         if adding_line not in self.words_list:
             self.words_list.append(adding_line)
-        self.update_index_set()
 
     def delete_words_line(self, i):
         if 0 <= i < len(self.words_list):
@@ -39,6 +46,7 @@ class Test(object):
         self.update_index_set()
 
     def save_words_list(self):
+        self.update_index_set()
         words_lines = [(line[0] + '-' + line[1]) + u'\n' for line in self.words_list]
         words_text = ''.join(words_lines)
         with codecs.open(Test.words_list_filename, 'w', 'utf-8') as words_file:
@@ -54,6 +62,10 @@ class Test(object):
             return 1
         else:
             return 0
+
+    def check_item(self, word_rus):
+        rus_list = set(line[0] for line in self.words_list)
+        return True if word_rus.lower() in rus_list else False
 
     def get_words_pair(self):
         """
@@ -86,10 +98,17 @@ class Test(object):
         self.words_list = words_lines
         self.save_words_list()
 
+    def create_new_list(self, new_list):
+        self.words_list = []
+        for line in new_list:
+            self.add_words_line(line[0], line[1])
+        self.save_words_list()
+
 
 class MyFrame(wx.Frame):
     """ We simply derive a new class of Frame, wxWidgets. """
     def __init__(self, parent, title):
+        self.test = Test()
         wx.Frame.__init__(self, parent, title=title, size=(500, 500))
         font = wx.Font(14, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
@@ -139,7 +158,7 @@ class MyFrame(wx.Frame):
 
     def set_words_control(self):
         self.try_number = 0
-        i, question, answer = test.get_words_pair()
+        i, question, answer = self.test.get_words_pair()
         self.question.Label = question
         self.correct_answer = answer
 
@@ -147,18 +166,16 @@ class MyFrame(wx.Frame):
         self.check_btn.Enable(True)
         self.answer.Enable(True)
         if self.rb1.GetValue():
-            test.set_mode("eng")
+            self.test.set_mode("eng")
         else:
-            test.set_mode("rus")
-        test.update_index_set()
+            self.test.set_mode("rus")
+        self.test.update_index_set()
         self.set_words_control()
 
     def OnCheck(self, e):
-        answer = self.answer.GetValue()
+        answer = self.answer.GetValue().lower()
         helper_text = "%s: %s" % (self.question.Label, self.correct_answer)
-        # print answer, self.correct_answer
         if answer == self.correct_answer:
-            # self.ShowMessage("")
             self.imageBitmap.SetBitmap(self.imagegreen)
         else:
             self.try_number += 1
@@ -179,6 +196,7 @@ class MyFrame(wx.Frame):
 
 class Words(wx.Frame):
     def __init__(self, parent, title):
+        self.test = Test()
         wx.Frame.__init__(self, parent, title=title, size=(380, 230))
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -187,36 +205,29 @@ class Words(wx.Frame):
         self.list = wx.ListCtrl(panel, -1, style=wx.LC_REPORT)
         self.list.InsertColumn(0, 'Русский', width=140)
         self.list.InsertColumn(1, 'Английский', width=130)
-        # self.list.InsertColumn(2, 'year', wx.LIST_FORMAT_RIGHT, 90)
 
-        for i in test.words_list:
+        for i in self.test.words_list:
             index = self.list.InsertStringItem(sys.maxint, i[0])
             self.list.SetStringItem(index, 1, i[1])
-            # self.list.SetStringItem(index, 2, i[2])
         hbox.Add(self.list, 1, wx.EXPAND)
 
         ID_NEW = 1
-        # ID_RENAME = 2
-        # ID_CLEAR = 3
         ID_DELETE = 4
-
+        ID_SAVE = 5
         btnPanel = wx.Panel(panel, -1)
         vbox = wx.BoxSizer(wx.VERTICAL)
         new = wx.Button(btnPanel, ID_NEW, 'Новый', size=(90, 30))
-        # ren = wx.Button(btnPanel, ID_RENAME, 'Rename', size=(90, 30))
         dlt = wx.Button(btnPanel, ID_DELETE, 'Удалить', size=(90, 30))
-        # clr = wx.Button(btnPanel, ID_CLEAR, 'Clear', size=(90, 30))
+        save = wx.Button(btnPanel, ID_SAVE, 'Сохранить', size=(90, 30))
 
         self.Bind(wx.EVT_BUTTON, self.NewItem, id=ID_NEW)
-        # self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=ID_DELETE)
-        # self.Bind(wx.EVT_BUTTON, self.OnClear, id=ID_CLEAR)
+        self.Bind(wx.EVT_BUTTON, self.OnSave, id=ID_SAVE)
 
         vbox.Add((-1, 20))
         vbox.Add(new)
-        # vbox.Add(ren, 0, wx.TOP, 5)
         vbox.Add(dlt, 0, wx.TOP, 5)
-        # vbox.Add(clr, 0, wx.TOP, 5)
+        vbox.Add(save, 0, wx.TOP, 5)
 
         btnPanel.SetSizer(vbox)
 
@@ -230,29 +241,24 @@ class Words(wx.Frame):
         text = wx.GetTextFromUser('Введите слово и перевод через дефис, "день-day"', 'Вставить пару')
         if text != '':
             words = text.split('-')
+            if self.test.check_item(words[0]):
+                return
             index = self.list.InsertStringItem(sys.maxint, words[0])
             self.list.SetStringItem(index, 1, words[1])
-
-    # def OnRename(self, event):
-    #     sel = self.listbox.GetSelection()
-    #     text = self.listbox.GetString(sel)
-    #     renamed = wx.GetTextFromUser('Rename item', 'Rename dialog', text)
-    #     if renamed != '':
-    #         self.listbox.Delete(sel)
-    #         self.listbox.Insert(renamed, sel)
 
     def OnDelete(self, event):
         sel = self.list.GetNextSelected(-1)
         if sel != -1:
             self.list.DeleteItem(sel)
 
+    def OnSave(self, e):
+        new_list = []
+        for row in range(self.list.GetItemCount()):
+            new_list.append([self.list.GetItemText(row, 0), self.list.GetItemText(row, 1)])
+        self.test.create_new_list(new_list)
+
 
 if __name__ == "__main__":
-    test = Test()
-    # test.file_starter_set()
-    # while len(test.unused_words) > 0:
-    #     print test.get_words_pair()
-
     app = wx.App(redirect=True)
     frame = MyFrame(None, u'Учим английские слова')
     app.MainLoop()
